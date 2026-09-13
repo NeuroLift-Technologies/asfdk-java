@@ -33,9 +33,11 @@ Add the artifact to your `pom.xml` (publish pending):
 import com.neurolift.asfdk.ASFDK;
 import com.neurolift.asfdk.foundation.NeuroLiftFoundation;
 import com.neurolift.asfdk.prompt.PromptDefense;
-import com.neurolift.asfdk.rrt.RrtAdvocateAdapter;
-import com.neurolift.asfdk.sleepwalker.SleepwalkerAdapter;
+import com.neurolift.asfdk.integration.RrtAdvocateAdapter;
+import com.neurolift.asfdk.integration.SleepwalkerAdapter;
+import com.neurolift.asfdk.prompt.SanitizationResult;
 import com.neurolift.asfdk.types.*;
+import com.neurolift.asfdk.integration.CrisisLevel;
 
 import java.time.Instant;
 import java.util.Map;

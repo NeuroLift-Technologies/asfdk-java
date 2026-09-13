@@ -89,15 +89,20 @@ public final class NeuroLiftFoundation {
             String input = interaction.data().get("text") != null
                     ? interaction.data().get("text").toString() : "";
             try {
-                CrisisAssessmentWithProvenance rrtResult = (CrisisAssessmentWithProvenance) validateComponentOutput(
-                        RrtAdvocateAdapter.assess(interaction.userId(), input, channel)
+                // Assess from the raw input first so crisis severity is never
+                // suppressed by the output-filtering gate (Codex P1): a
+                // caller-controlled userId in the record metadata must not be
+                // able to match LEAK_PATTERNS and hide a genuine crisis.
+                CrisisAssessmentWithProvenance raw = RrtAdvocateAdapter.assess(
+                        interaction.userId(), input, channel
                 );
+                if (interaction.interactionType() == InteractionType.CRISIS_ALERT) {
+                    CrisisLevel level = raw.assessment().crisisLevel();
+                    highSeverity = level == CrisisLevel.RED || level == CrisisLevel.BLACK;
+                }
+                CrisisAssessmentWithProvenance rrtResult = (CrisisAssessmentWithProvenance) validateComponentOutput(raw);
                 if (rrtResult != null) {
                     content.put("rrt", rrtResult);
-                }
-                if (interaction.interactionType() == InteractionType.CRISIS_ALERT) {
-                    CrisisLevel level = rrtResult != null ? rrtResult.assessment().crisisLevel() : null;
-                    highSeverity = level == CrisisLevel.RED || level == CrisisLevel.BLACK;
                 }
             } catch (Exception err) {
                 content.put("error", Map.of("component", "rrt_advocate", "message", err.toString()));
@@ -131,12 +136,17 @@ public final class NeuroLiftFoundation {
         }
         Channel resolved = Channel.normalize(channel);
         boolean trusted = resolved == Channel.USER_INPUT;
-        Map<String, Object> result = new HashMap<>();
-        EmotionalState inner = new EmotionalState();
+
+        // Route the supplied input through the Sleepwalker classifier (Codex P1).
+        @SuppressWarnings("unchecked")
+        Map<String, Object> result = new HashMap<>(SleepwalkerAdapter.assessInteraction(input, List.of(), resolved));
+        EmotionalState inner = (EmotionalState) result.get("emotionalState");
+        if (inner == null) {
+            inner = new EmotionalState();
+        }
         boolean highSeverity = inner.explicitSuicidalIdeation()
                 || inner.selfHarmIndicators()
                 || inner.inabilityToEnsureSafety();
-        result.put("emotionalState", inner);
         result.put("channel", resolved);
         result.put("trusted", trusted);
         result.put("gateUp", !trusted && highSeverity);

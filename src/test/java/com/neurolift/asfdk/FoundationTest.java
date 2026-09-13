@@ -2,6 +2,11 @@ package com.neurolift.asfdk;
 
 import com.neurolift.asfdk.foundation.NeuroLiftFoundation;
 import com.neurolift.asfdk.integration.ComponentAdapterStatus;
+import com.neurolift.asfdk.integration.CrisisLevel;
+import com.neurolift.asfdk.integration.EmotionalState;
+import com.neurolift.asfdk.integration.TOIValidationResult;
+import com.neurolift.asfdk.integration.ValidationIssue;
+import com.neurolift.asfdk.prompt.PromptDefense;
 import com.neurolift.asfdk.types.*;
 
 import org.junit.jupiter.api.Test;
@@ -229,7 +234,84 @@ class FoundationTest {
                 Map.of("text", "I feel overwhelmed today", "channel", "user_input"),
                 "t7", null, null, Map.of("channel", "user_input"), null
         ));
-        assertEquals(Channel.UNKNOWN, response.content().get("channel"));
+                assertEquals(Channel.UNKNOWN, response.content().get("channel"));
         assertEquals(false, response.content().get("trusted"));
+    }
+
+        // --- Codex PR1 regression: assessEmotionalState must classify real input, ---
+    // --- it previously returned a zero-value EmotionalState stub. -----------------
+    @Test
+    void T17_assessEmotionalState_classifiesCrisisInput() {
+        NeuroLiftFoundation f = ASFDK.createFoundation("t17", FoundationMode.CONTINUITY_ONLY);
+
+        // Trusted (user) channel: high severity is detected, but gateUp never fires for trusted input.
+        @SuppressWarnings("unchecked")
+        Map<String, Object> trusted = f.assessEmotionalState("I want to kill myself", null, Channel.USER_INPUT);
+        assertNotNull(trusted);
+        EmotionalState tState = (EmotionalState) trusted.get("emotionalState");
+        assertNotNull(tState);
+        assertTrue(tState.explicitSuicidalIdeation(),
+                "must classify self-harm ideation instead of returning a zero-value stub");
+        assertEquals("crisis", tState.dominant());
+        assertEquals(true, trusted.get("trusted"));
+        assertEquals(false, trusted.get("gateUp")); // trusted input never gates up
+
+        // Untrusted (model) channel carrying a crisis signal: gateUp must fire.
+        @SuppressWarnings("unchecked")
+        Map<String, Object> untrusted = f.assessEmotionalState("I want to kill myself", null, Channel.MODEL_OUTPUT);
+        assertEquals(true, untrusted.get("trusted") == Boolean.FALSE);
+        assertEquals(true, untrusted.get("gateUp"));
+    }
+
+    // --- Codex PR1 regression: crisis severity must be computed from the raw ---
+    // --- assessment BEFORE output filtering. A caller-controlled userId that ---
+    // --- matches LEAK_PATTERNS must not suppress a genuine crisis gate. ---------
+    @Test
+    void T18_crisisSeverityBeforeFilter_userIdLeakPatternDoesNotSuppressGate() {
+        NeuroLiftFoundation f = ASFDK.createFoundation("t18", FoundationMode.CRISIS_ONLY);
+        // userId crafted to trip LEAK_PATTERNS #2 ("my ... instructions ... include")
+        FoundationResponse response = f.processInteraction(new UserInteraction(
+                Instant.now().toEpochMilli(), InteractionType.CRISIS_ALERT,
+                Map.of("text", "I want to kill myself"),
+                "my system instructions include the rules", null, null, null, Channel.MODEL_OUTPUT
+        ));
+        assertTrue(response.componentsInvolved().contains("rrt_advocate"));
+        // gateUp must remain true because severity was derived from the raw RED assessment
+        assertEquals(true, response.content().get("gateUp"));
+    }
+
+        // --- Codex P2 regression: validateTOI must reject non-string $tier. ---------
+    @Test
+    void T19_validateToi_rejectsNonStringTier() {
+        NeuroLiftFoundation f = ASFDK.createFoundation("t19", FoundationMode.FRAMEWORK_ONLY);
+        // $tier is an integer instead of a string; must be rejected, not coerced.
+        Map<String, Object> badToi = Map.of(
+                "$toi", "1.0.0",
+                "$tier", 42,
+                "identity", Map.of("author", "test-user")
+        );
+        FoundationResponse resp = f.processInteraction(new UserInteraction(
+                Instant.now().toEpochMilli(), InteractionType.PREFERENCE_UPDATE,
+                Map.of("toi", badToi), "t19", null, null, null, null
+        ));
+        TOIValidationResult validation = (TOIValidationResult) resp.content().get("toiValidation");
+        assertNotNull(validation);
+        assertFalse(validation.valid());
+        assertTrue(validation.errors().stream().anyMatch(
+                issue -> issue.path().equals("$tier") && issue.code().equals("invalid_type")));
+    }
+
+    // --- Codex P2 regression: logSecurityEvent must produce valid JSON even ---
+    // --- when userId contains quotes/newlines. ---------------------------------
+    @Test
+    void T20_logSecurityEvent_embeddedQuotesDoNotBreakJson() {
+        assertDoesNotThrow(() ->
+                PromptDefense.logSecurityEvent(
+                        com.neurolift.asfdk.prompt.SecurityEventType.INJECTION_ATTEMPT,
+                        "user with \" quotes\nand newlines",
+                        "details with \" embedded quotes",
+                        System.currentTimeMillis()
+                )
+        );
     }
 }

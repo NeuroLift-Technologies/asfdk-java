@@ -73,11 +73,22 @@ public final class ToiOtoiAdapter {
             );
         }
 
+        // Validate $tier is a string when present (Codex P2): non-string tiers
+        // must be rejected rather than silently coerced to "personal".
+        Object tierObj = map.get("$tier");
+        if (tierObj != null && !(tierObj instanceof String)) {
+            return new TOIValidationResult(
+                    false,
+                    List.of(new ValidationIssue("Invalid $tier type: must be a string", "$tier", "invalid_type"))
+            );
+        }
+
         // Build a ToiDocument from the validated map
         Map<String, Object> idMap = (Map<String, Object>) identity;
+        String tier = tierObj instanceof String ? (String) tierObj : "personal";
         ToiDocument document = new ToiDocument(
                 (String) toiVersion,
-                map.get("$tier") instanceof String ? (String) map.get("$tier") : "personal",
+                tier,
                 new ToiIdentity((String) idMap.get("author"))
         );
         return new TOIValidationResult(true, null, document);

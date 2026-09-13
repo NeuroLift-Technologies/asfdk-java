@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.neurolift.asfdk.integration.Json;
+
 /**
  * Prompt Injection Defense Utilities.
  *
@@ -128,9 +131,14 @@ public final class PromptDefense {
     }
 
     public static void logSecurityEvent(SecurityEventType type, String userId, String details, long timestamp) {
-        String logEntry = "{\"event\":\"SECURITY_AUDIT\",\"type\":\"" + type
-                + "\",\"userId\":\"" + userId + "\",\"details\":\"" + details
-                + "\",\"timestamp\":" + timestamp + "}";
-        System.err.println("SECURITY_EVENT: " + logEntry);
+        // Serialize the event with Jackson so caller-controlled userId/details
+        // cannot break the JSON or forge fields (Codex P2).
+        ObjectNode node = Json.mapper().createObjectNode();
+        node.put("event", "SECURITY_AUDIT");
+        node.put("type", type.toString());
+        node.put("userId", userId);
+        node.put("details", details);
+        node.put("timestamp", timestamp);
+        System.err.println("SECURITY_EVENT: " + node);
     }
 }
