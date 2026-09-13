@@ -1,0 +1,41 @@
+{
+  "handoff_record": {
+    "session_id": "session-asfdk-java-001",
+    "agent_name": "java_governance_agent (Cline)",
+    "date": "2026-09-12",
+    "repo": "NeuroLift-Technologies/asfdk-java",
+    "branch": "feature/port-asfdk-java",
+    "work_completed": [
+      "Clean-room Java port of ASFDK (Maven, Java 17, jackson-databind, junit-jupiter)",
+      "types package: FoundationMode, InteractionType, Channel (normalize/fromValue), ComponentOverrides, FoundationConfig, UserInteraction, FoundationResponse, ComponentStatus, HealthCheckResult",
+      "prompt package: PromptDefense (sanitizeInput with <user_message> delimiters, 5000-char cap, injection + leak patterns, JSON output validation), SanitizationResult, RiskLevel, ValidationResult, OutputSchema, SecurityEventType, InjectionDetection",
+      "integration package: ToiOtoiAdapter (validateTOI), SleepwalkerAdapter (detectEmotionalState + requiresRrtaHandoff), RrtAdvocateAdapter + CrisisEngine (assess), EmotionalState, CrisisLevel, CrisisAssessment, ToiDocument, Json (Jackson)",
+      "foundation package: NeuroLiftFoundation (modes, component resolution, ProcessInteraction routing, fail-loud on null mode, generateToi, healthCheck, shutdown)",
+      "ASFDK.java: createFoundation entry point",
+      "54 unit tests mirroring the Kotlin suite (FoundationTest, PromptDefenseTest, IntegrationTest)",
+      "Governance scaffolding (ORG-DEV-OTOI-1.0.3) and validate-governance.sh"
+    ],
+    "work_in_progress": [
+      "PR creation on GitHub (branch feature/port-asfdk-java)"
+    ],
+    "blockers": [],
+    "decisions_made": [
+      "Ported asfdk-kotlin semantics faithfully (delimiter-wrapping sanitizer, 5000-char cap); where the Kotlin reference tests were buggy, applied correct canonical asfdk semantics (user_input is the only trusted channel)",
+      "Jackson (jackson-databind) as the JSON layer, mirroring Kotlin kotlinx.serialization.json",
+      "Maven build with Java 17 release target, JUnit 5"
+    ],
+    "decisions_pending": [
+      "Whether to pursue full canonical feature parity beyond the Kotlin reference"
+    ],
+    "escalations": [],
+    "next_agent_notes": "Branch feature/port-asfdk-java ready for PR. Run mvn test (54 tests), bash .nltotoi/scripts/validate-governance.sh. Reference: asfdk-kotlin/src/commonMain/kotlin/com/neurolift/asfdk/.",
+    "files_modified": [
+      "pom.xml (new)", "src/main/java/** (new)", "src/test/java/** (new)",
+      "README.md (new)", "Governance scaffolding: NLT-DEV-OTOI.md, AGENTS.md, CLAUDE.md, nltotoi.json, .nltotoi/*, templates/*, ISSUE_TEMPLATE/*, SOPs/*, PULL_REQUEST_TEMPLATE/*, .github/workflows/*, docs/*"
+    ],
+    "tests_run": [
+      "mvn compile", "mvn test (54 tests)", "bash .nltotoi/scripts/validate-governance.sh"
+    ],
+    "tests_passing": true
+  }
+}
