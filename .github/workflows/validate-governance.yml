@@ -1,0 +1,51 @@
+name: ASFDK Java Governance Validation
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/validate-governance.yml'
+      - '.nltotoi/**'
+      - 'AGENTS.md'
+      - 'CLAUDE.md'
+      - 'NLT-DEV-OTOI.md'
+      - 'templates/**'
+      - 'SOPs/**'
+      - 'ISSUE_TEMPLATE/**'
+      - 'PULL_REQUEST_TEMPLATE/**'
+      - 'src/**'
+      - 'pom.xml'
+  pull_request:
+    paths:
+      - '.github/workflows/validate-governance.yml'
+      - '.nltotoi/**'
+      - 'AGENTS.md'
+      - 'CLAUDE.md'
+      - 'NLT-DEV-OTOI.md'
+      - 'templates/**'
+      - 'SOPs/**'
+      - 'ISSUE_TEMPLATE/**'
+      - 'PULL_REQUEST_TEMPLATE/**'
+      - 'src/**'
+      - 'pom.xml'
+
+# Least privilege: this workflow only checks out code and runs the governance script / maven gates.
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - name: Set up Java
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3  # v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Set up Maven
+        uses: stCarolas/setup-maven@d6af6abeda15e98926a57b5aa970a96bb37f97d1  # v5
+        with:
+          maven-version: '3.9.9'
+      - name: Check governance status
+        run: bash .nltotoi/scripts/validate-governance.yml || bash .nltotoi/scripts/validate-governance.sh
