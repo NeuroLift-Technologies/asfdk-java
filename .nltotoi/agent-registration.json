@@ -1,0 +1,26 @@
+{
+  "agent_registration": {
+    "agent_name": "java_governance_agent",
+    "platform": "Cline (Claude)",
+    "version": "2026.09.12",
+    "session_id": "session-asfdk-java-001",
+    "entry_date": "2026-09-12",
+    "entry_point": "Porting ASFDK to Java",
+    "acknowledged_otoi": true,
+    "otoi_version": "ORG-DEV-OTOI-1.0.3",
+    "working_repo": "NeuroLift-Technologies/asfdk-java",
+    "working_branch": "feature/port-asfdk-java",
+    "capabilities_self_reported": [
+      "ASFDK framework porting and adaptation",
+      "TOI/OTOI governance compliance",
+      "Java/Maven build and test patterns",
+      "Jackson JSON integration"
+    ],
+    "known_limitations": [
+      "Full ASFDK feature parity in progress",
+      "Some Python/TypeScript-specific features require Java equivalents",
+      "Kotlin reference model is itself a work-in-progress"
+    ],
+    "preferred_handoff_format": "Structured JSON with context summary"
+  }
+}
